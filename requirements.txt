@@ -16,6 +16,9 @@ pandas>=2.0
 matplotlib>=3.5
 networkx>=3.0
 
+# Database connectivity
+pymssql>=2.2
+
 # Development and testing (optional)
 pytest>=7.0
 # black>=22.0.0
