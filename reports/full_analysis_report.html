@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AcmeERP Stored Procedure Analysis — Full Report</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117; --fg: #c9d1d9; --accent: #58a6ff; --border: #30363d;
+    --card-bg: #161b22; --green: #3fb950; --red: #f85149; --yellow: #d29922;
+    --purple: #bc8cff; --orange: #f0883e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; padding: 2rem; }
+  h1 { color: var(--accent); font-size: 2rem; margin-bottom: .5rem; border-bottom: 2px solid var(--accent); padding-bottom: .5rem; }
+  h2 { color: var(--purple); font-size: 1.5rem; margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: .3rem; }
+  h3 { color: var(--orange); font-size: 1.2rem; margin: 1.5rem 0 .5rem; }
+  h4 { color: var(--fg); margin: 1rem 0 .5rem; }
+  .subtitle { color: #8b949e; font-size: .9rem; margin-bottom: 2rem; }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin: 1rem 0; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin: 1rem 0; }
+  .stat-box { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center; }
+  .stat-box .num { font-size: 2rem; font-weight: 700; }
+  .stat-box .label { font-size: .8rem; color: #8b949e; }
+  .green { color: var(--green); }
+  .red { color: var(--red); }
+  .yellow { color: var(--yellow); }
+  .purple { color: var(--purple); }
+  .accent { color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .9rem; }
+  th, td { padding: .6rem .8rem; border: 1px solid var(--border); text-align: left; }
+  th { background: #21262d; color: var(--accent); font-weight: 600; }
+  tr:nth-child(even) { background: #161b22; }
+  tr:hover { background: #1c2128; }
+  code { background: #21262d; color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: .85rem; }
+  pre { background: #161b22; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; overflow-x: auto; font-size: .85rem; line-height: 1.5; }
+  pre code { background: none; padding: 0; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: .75rem; font-weight: 600; }
+  .badge-pass { background: #238636; color: #fff; }
+  .badge-fail { background: #da3633; color: #fff; }
+  .badge-high { background: #da3633; color: #fff; }
+  .badge-medium { background: #9e6a03; color: #fff; }
+  .badge-low { background: #238636; color: #fff; }
+  .mermaid { background: #fff; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+  .toc { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin: 1rem 0; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .toc ol { padding-left: 1.5rem; }
+  .toc li { margin: .3rem 0; }
+  .param-table td:first-child { font-family: monospace; color: var(--accent); }
+  .flow-step { display: flex; align-items: center; margin: .5rem 0; }
+  .flow-step .step-num { background: var(--accent); color: var(--bg); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .8rem; margin-right: .8rem; flex-shrink: 0; }
+  .flow-step .step-text { flex: 1; }
+  .section-divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+</style>
+</head>
+<body>
+
+<h1>AcmeERP Stored Procedure Analysis</h1>
+<p class="subtitle">Comprehensive analysis of database schema, stored procedures, entity relationships, and test coverage &bull; Generated 2026-05-11</p>
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+  <strong>Table of Contents</strong>
+  <ol>
+    <li><a href="#exec-summary">Executive Summary</a></li>
+    <li><a href="#architecture">System Architecture</a></li>
+    <li><a href="#er-diagram">Entity-Relationship Diagram</a></li>
+    <li><a href="#schema">Database Schema Details</a></li>
+    <li><a href="#sp-catalog">Stored Procedure Catalog</a>
+      <ol>
+        <li><a href="#sp-fifo">usp_CalculateFifoCost</a></li>
+        <li><a href="#sp-currency">usp_ConvertToBase</a></li>
+        <li><a href="#sp-payroll">usp_ProcessFullPayrollCycle</a></li>
+        <li><a href="#sp-edge">Edge-Case Stored Procedures</a></li>
+      </ol>
+    </li>
+    <li><a href="#entity-mapping">Entity &rarr; SP Mapping</a></li>
+    <li><a href="#data-flow">Data Flow Diagrams</a></li>
+    <li><a href="#test-results">Test Results</a></li>
+    <li><a href="#data-summary">Synthetic Data Summary</a></li>
+    <li><a href="#integrity">Data Integrity Analysis</a></li>
+    <li><a href="#performance">Performance Observations</a></li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="exec-summary">1. Executive Summary</h2>
+<!-- ============================================================ -->
+
+<div class="stat-grid">
+  <div class="stat-box"><div class="num accent">6</div><div class="label">Stored Procedures</div></div>
+  <div class="stat-box"><div class="num accent">11</div><div class="label">Database Tables</div></div>
+  <div class="stat-box"><div class="num green">38</div><div class="label">Tests Passed</div></div>
+  <div class="stat-box"><div class="num red">0</div><div class="label">Tests Failed</div></div>
+  <div class="stat-box"><div class="num green">100%</div><div class="label">Test Pass Rate</div></div>
+  <div class="stat-box"><div class="num purple">3.35s</div><div class="label">Total Test Time</div></div>
+</div>
+
+<div class="card">
+  <p>The AcmeERP database implements a <strong>multi-domain ERP system</strong> covering Payroll, Inventory/FIFO Costing, and Multi-Currency operations. Three core stored procedures handle business logic, supported by 8 edge-case procedures for testing parser capabilities. All 38 tests pass against a SQL Server 2022 instance with 1,012 employees, 504 products, and 2,006 stock movements.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="architecture">2. System Architecture</h2>
+<!-- ============================================================ -->
+
+<div class="mermaid">
+graph TB
+    subgraph "AcmeERP Database"
+        subgraph "Payroll Domain"
+            EMP[Employees]
+            PL[PayrollLogs]
+            PAY_SP["usp_ProcessFullPayrollCycle"]
+        end
+        subgraph "Inventory Domain"
+            PROD[Products]
+            SM[StockMovements]
+            FIFO_SP["usp_CalculateFifoCost"]
+        end
+        subgraph "Currency Domain"
+            CUR[Currencies]
+            ER[ExchangeRates]
+            CONV_SP["usp_ConvertToBase"]
+        end
+    end
+
+    PAY_SP -->|"READ"| EMP
+    PAY_SP -->|"READ"| ER
+    PAY_SP -->|"WRITE"| PL
+    FIFO_SP -->|"READ"| SM
+    CONV_SP -->|"READ"| ER
+    PAY_SP -.->|"calls internally"| CONV_SP
+
+    style EMP fill:#1f6feb,stroke:#58a6ff,color:#fff
+    style PL fill:#1f6feb,stroke:#58a6ff,color:#fff
+    style PROD fill:#238636,stroke:#3fb950,color:#fff
+    style SM fill:#238636,stroke:#3fb950,color:#fff
+    style CUR fill:#9e6a03,stroke:#d29922,color:#fff
+    style ER fill:#9e6a03,stroke:#d29922,color:#fff
+    style PAY_SP fill:#6e40c9,stroke:#bc8cff,color:#fff
+    style FIFO_SP fill:#6e40c9,stroke:#bc8cff,color:#fff
+    style CONV_SP fill:#6e40c9,stroke:#bc8cff,color:#fff
+</div>
+
+<h3>Component Interaction Flow</h3>
+<div class="mermaid">
+sequenceDiagram
+    participant Client
+    participant PayrollSP as usp_ProcessFullPayrollCycle
+    participant TempTable as #PayrollCalc
+    participant Employees as AcmeERP.Employees
+    participant ExRates as AcmeERP.ExchangeRates
+    participant PayLogs as AcmeERP.PayrollLogs
+
+    Client->>PayrollSP: EXEC @PayPeriodStart, @PayPeriodEnd
+    PayrollSP->>PayrollSP: BEGIN TRANSACTION
+    PayrollSP->>Employees: SELECT all employees
+    Employees-->>PayrollSP: Employee data
+    PayrollSP->>TempTable: INSERT INTO #PayrollCalc (calc bonus, tax, gross)
+    PayrollSP->>PayrollSP: OPEN PayrollCursor
+    loop For each employee
+        PayrollSP->>ExRates: SELECT TOP 1 rate WHERE Currency + Date
+        ExRates-->>PayrollSP: Exchange rate (or NULL → 1)
+        PayrollSP->>TempTable: UPDATE ConvertedSalary
+    end
+    PayrollSP->>PayrollSP: CLOSE PayrollCursor
+    PayrollSP->>PayLogs: INSERT INTO PayrollLogs FROM #PayrollCalc
+    PayrollSP->>PayrollSP: COMMIT TRANSACTION
+    PayrollSP-->>Client: Success
+</div>
+
+<!-- ============================================================ -->
+<h2 id="er-diagram">3. Entity-Relationship Diagram</h2>
+<!-- ============================================================ -->
+
+<div class="mermaid">
+erDiagram
+    EMPLOYEES {
+        INT EmployeeID PK
+        NVARCHAR FirstName
+        NVARCHAR LastName
+        NVARCHAR Department
+        NVARCHAR Position
+        DATE HireDate
+        DECIMAL BaseSalary
+        CHAR Currency
+    }
+
+    PAYROLLLOGS {
+        INT PayrollID PK
+        INT EmployeeID FK
+        DATE PayPeriodStart
+        DATE PayPeriodEnd
+        DECIMAL GrossSalary
+        DECIMAL TaxDeducted
+        DECIMAL NetSalary "computed"
+        BIT Paid
+    }
+
+    PRODUCTS {
+        INT ProductID PK
+        NVARCHAR ProductName
+        NVARCHAR Category
+        VARCHAR CostMethod "FIFO or LIFO"
+        INT CurrentStock
+    }
+
+    STOCKMOVEMENTS {
+        INT MovementID PK
+        INT ProductID FK
+        DATE MovementDate
+        INT Quantity
+        DECIMAL UnitCost
+        VARCHAR Direction "IN or OUT"
+    }
+
+    CURRENCIES {
+        CHAR CurrencyCode PK
+        NVARCHAR CurrencyName
+    }
+
+    EXCHANGERATES {
+        INT RateID PK
+        CHAR CurrencyCode FK
+        DATE RateDate
+        DECIMAL RateToBase
+    }
+
+    EMPLOYEES ||--o{ PAYROLLLOGS : "has"
+    EMPLOYEES }o--|| CURRENCIES : "uses"
+    PRODUCTS ||--o{ STOCKMOVEMENTS : "has"
+    CURRENCIES ||--o{ EXCHANGERATES : "has"
+</div>
+
+<h3>Edge-Case Tables (dbo schema)</h3>
+<div class="mermaid">
+erDiagram
+    DBO_EMPLOYEES {
+        INT EmployeeID PK
+        VARCHAR Name
+        VARCHAR Department
+        DECIMAL Salary
+    }
+
+    DBO_TASKS {
+        INT TaskID PK
+        INT EmployeeID FK
+        VARCHAR TaskName
+        VARCHAR Status "Pending/InProgress/Completed"
+    }
+
+    DBO_USERS {
+        INT id PK
+        VARCHAR name
+        BIT active
+    }
+
+    DBO_LOGS {
+        INT log_id PK
+        INT user_id FK
+        VARCHAR status
+        INT attempt
+    }
+
+    DBO_AUDIT_LOG {
+        INT audit_id PK
+        INT user_id FK
+        VARCHAR message
+    }
+
+    DBO_EMPLOYEES ||--o{ DBO_TASKS : "assigned"
+    DBO_USERS ||--o{ DBO_LOGS : "generates"
+    DBO_USERS ||--o{ DBO_AUDIT_LOG : "audited in"
+</div>
+
+<!-- ============================================================ -->
+<h2 id="schema">4. Database Schema Details</h2>
+<!-- ============================================================ -->
+
+<h3>AcmeERP.Employees</h3>
+<div class="card">
+<table>
+  <tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr>
+  <tr><td><code>EmployeeID</code></td><td>INT</td><td>PK, IDENTITY</td><td>Auto-incremented employee identifier</td></tr>
+  <tr><td><code>FirstName</code></td><td>NVARCHAR(50)</td><td></td><td>Employee first name</td></tr>
+  <tr><td><code>LastName</code></td><td>NVARCHAR(50)</td><td></td><td>Employee last name</td></tr>
+  <tr><td><code>Department</code></td><td>NVARCHAR(50)</td><td></td><td>Department (Finance, HR, IT)</td></tr>
+  <tr><td><code>Position</code></td><td>NVARCHAR(50)</td><td></td><td>Job title (Analyst, Manager, Director)</td></tr>
+  <tr><td><code>HireDate</code></td><td>DATE</td><td></td><td>Date of hire — used for tenure-based bonus calculation</td></tr>
+  <tr><td><code>BaseSalary</code></td><td>DECIMAL(18,2)</td><td></td><td>Annual base salary — drives tax bracket selection</td></tr>
+  <tr><td><code>Currency</code></td><td>CHAR(3)</td><td>DEFAULT 'USD'</td><td>ISO currency code; ISNULL fallback in SP</td></tr>
+</table>
+</div>
+
+<h3>AcmeERP.PayrollLogs</h3>
+<div class="card">
+<table>
+  <tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr>
+  <tr><td><code>PayrollID</code></td><td>INT</td><td>PK, IDENTITY</td><td>Payroll record identifier</td></tr>
+  <tr><td><code>EmployeeID</code></td><td>INT</td><td>FK → Employees</td><td>Reference to employee</td></tr>
+  <tr><td><code>PayPeriodStart</code></td><td>DATE</td><td></td><td>Start of pay period</td></tr>
+  <tr><td><code>PayPeriodEnd</code></td><td>DATE</td><td></td><td>End of pay period</td></tr>
+  <tr><td><code>GrossSalary</code></td><td>DECIMAL(18,2)</td><td></td><td>Currency-converted gross salary</td></tr>
+  <tr><td><code>TaxDeducted</code></td><td>DECIMAL(18,2)</td><td></td><td>Tax amount based on salary bracket</td></tr>
+  <tr><td><code>NetSalary</code></td><td>DECIMAL(18,2)</td><td>COMPUTED PERSISTED</td><td><code>GrossSalary - TaxDeducted</code></td></tr>
+  <tr><td><code>Paid</code></td><td>BIT</td><td>DEFAULT 0</td><td>Payment status flag</td></tr>
+</table>
+</div>
+
+<h3>AcmeERP.Products</h3>
+<div class="card">
+<table>
+  <tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr>
+  <tr><td><code>ProductID</code></td><td>INT</td><td>PK, IDENTITY</td><td>Product identifier</td></tr>
+  <tr><td><code>ProductName</code></td><td>NVARCHAR(100)</td><td></td><td>Product display name</td></tr>
+  <tr><td><code>Category</code></td><td>NVARCHAR(50)</td><td></td><td>Category (Electronics, Stationery, Office Supplies)</td></tr>
+  <tr><td><code>CostMethod</code></td><td>VARCHAR(10)</td><td>CHECK (FIFO/LIFO)</td><td>Costing method for inventory valuation</td></tr>
+  <tr><td><code>CurrentStock</code></td><td>INT</td><td></td><td>Current stock quantity</td></tr>
+</table>
+</div>
+
+<h3>AcmeERP.StockMovements</h3>
+<div class="card">
+<table>
+  <tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr>
+  <tr><td><code>MovementID</code></td><td>INT</td><td>PK, IDENTITY</td><td>Movement record identifier</td></tr>
+  <tr><td><code>ProductID</code></td><td>INT</td><td>FK → Products</td><td>Reference to product</td></tr>
+  <tr><td><code>MovementDate</code></td><td>DATE</td><td></td><td>Date of stock movement</td></tr>
+  <tr><td><code>Quantity</code></td><td>INT</td><td></td><td>Units moved (positive for IN/OUT)</td></tr>
+  <tr><td><code>UnitCost</code></td><td>DECIMAL(18,2)</td><td></td><td>Cost per unit at time of movement</td></tr>
+  <tr><td><code>Direction</code></td><td>VARCHAR(10)</td><td>CHECK (IN/OUT)</td><td>Movement direction</td></tr>
+</table>
+</div>
+
+<h3>AcmeERP.Currencies &amp; ExchangeRates</h3>
+<div class="card">
+<table>
+  <tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr>
+  <tr><td colspan="4" style="background:#21262d;color:var(--accent);font-weight:600;">Currencies</td></tr>
+  <tr><td><code>CurrencyCode</code></td><td>CHAR(3)</td><td>PK</td><td>ISO currency code (USD, EUR, GBP, JPY, INR)</td></tr>
+  <tr><td><code>CurrencyName</code></td><td>NVARCHAR(50)</td><td></td><td>Full currency name</td></tr>
+  <tr><td colspan="4" style="background:#21262d;color:var(--accent);font-weight:600;">ExchangeRates</td></tr>
+  <tr><td><code>RateID</code></td><td>INT</td><td>PK, IDENTITY</td><td>Rate record identifier</td></tr>
+  <tr><td><code>CurrencyCode</code></td><td>CHAR(3)</td><td>FK → Currencies</td><td>Currency for this rate</td></tr>
+  <tr><td><code>RateDate</code></td><td>DATE</td><td></td><td>Date the rate applies to</td></tr>
+  <tr><td><code>RateToBase</code></td><td>DECIMAL(18,6)</td><td></td><td>Conversion rate to base currency (USD)</td></tr>
+</table>
+</div>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<h2 id="sp-catalog">5. Stored Procedure Catalog</h2>
+<!-- ============================================================ -->
+
+<!-- SP 1: FIFO -->
+<h3 id="sp-fifo">5.1 AcmeERP.usp_CalculateFifoCost</h3>
+<div class="card">
+  <table>
+    <tr><th style="width:150px">Property</th><th>Value</th></tr>
+    <tr><td>Domain</td><td>Inventory / Costing</td></tr>
+    <tr><td>Complexity</td><td><span class="badge badge-medium">MEDIUM</span></td></tr>
+    <tr><td>Tables Read</td><td><code>AcmeERP.StockMovements</code></td></tr>
+    <tr><td>Tables Written</td><td>None (read-only query)</td></tr>
+    <tr><td>AST Nodes</td><td>CTE, Window Function (SUM OVER), SELECT, WHERE</td></tr>
+    <tr><td>Output</td><td>Result set: <code>FifoCostEstimate DECIMAL</code></td></tr>
+  </table>
+
+  <h4>Parameters</h4>
+  <table class="param-table">
+    <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+    <tr><td>@ProductID</td><td>INT</td><td>Product to calculate FIFO cost for</td></tr>
+    <tr><td>@QuantityRequested</td><td>INT</td><td>Quantity to cost using FIFO method</td></tr>
+  </table>
+
+  <h4>Algorithm</h4>
+  <div class="flow-step"><div class="step-num">1</div><div class="step-text">Build CTE <code>CTE_FIFO</code> over IN-direction movements for the given product</div></div>
+  <div class="flow-step"><div class="step-num">2</div><div class="step-text">Calculate running total using <code>SUM(Quantity) OVER (ORDER BY MovementDate)</code></div></div>
+  <div class="flow-step"><div class="step-num">3</div><div class="step-text">Filter rows where <code>RunningTotal &le; @QuantityRequested</code></div></div>
+  <div class="flow-step"><div class="step-num">4</div><div class="step-text">Return <code>AVG(UnitCost)</code> of qualifying batches as the FIFO cost estimate</div></div>
+
+  <h4>Control Flow Diagram</h4>
+  <div class="mermaid">
+  flowchart TD
+      A["Input: @ProductID, @QuantityRequested"] --> B["CTE: Filter StockMovements WHERE Direction='IN'"]
+      B --> C["Window: SUM(Quantity) OVER ORDER BY MovementDate"]
+      C --> D{"RunningTotal ≤ @QuantityRequested?"}
+      D -->|Yes| E["Include row in AVG calculation"]
+      D -->|No| F["Exclude row"]
+      E --> G["Return AVG(UnitCost) as FifoCostEstimate"]
+      F --> G
+      G --> H{"Result NULL?"}
+      H -->|Yes| I["Returns NULL (insufficient/no stock)"]
+      H -->|No| J["Returns decimal cost estimate"]
+  </div>
+
+  <h4>Edge Cases</h4>
+  <table>
+    <tr><th>Scenario</th><th>Behavior</th><th>Test</th></tr>
+    <tr><td>No IN movements</td><td>Returns NULL</td><td><span class="badge badge-pass">PASS</span> test_fifo_no_in_movements</td></tr>
+    <tr><td>Single batch</td><td>Returns that batch's UnitCost</td><td><span class="badge badge-pass">PASS</span> test_fifo_single_batch</td></tr>
+    <tr><td>Exact stock match</td><td>All rows included in AVG</td><td><span class="badge badge-pass">PASS</span> test_fifo_exact_match</td></tr>
+    <tr><td>Exceeds total stock</td><td>Returns AVG of all available batches</td><td><span class="badge badge-pass">PASS</span> test_fifo_exceeds_stock</td></tr>
+    <tr><td>Negative quantity</td><td>Negative RunningTotal → included</td><td><span class="badge badge-pass">PASS</span> test_negative_quantity_fifo</td></tr>
+  </table>
+</div>
+
+<!-- SP 2: Currency -->
+<h3 id="sp-currency">5.2 AcmeERP.usp_ConvertToBase</h3>
+<div class="card">
+  <table>
+    <tr><th style="width:150px">Property</th><th>Value</th></tr>
+    <tr><td>Domain</td><td>Multi-Currency</td></tr>
+    <tr><td>Complexity</td><td><span class="badge badge-medium">MEDIUM</span></td></tr>
+    <tr><td>Tables Read</td><td><code>AcmeERP.ExchangeRates</code></td></tr>
+    <tr><td>Tables Written</td><td>None (read-only query)</td></tr>
+    <tr><td>AST Nodes</td><td>IF/ELSE chain, SELECT, Variable Assignment, TOP 1, AVG, DATEADD</td></tr>
+    <tr><td>Output</td><td>Result set: <code>ConvertedAmount DECIMAL</code></td></tr>
+  </table>
+
+  <h4>Parameters</h4>
+  <table class="param-table">
+    <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+    <tr><td>@CurrencyCode</td><td>CHAR(3)</td><td>Source currency ISO code</td></tr>
+    <tr><td>@Amount</td><td>DECIMAL(18,2)</td><td>Amount to convert</td></tr>
+    <tr><td>@ConversionDate</td><td>DATE</td><td>Date for rate lookup</td></tr>
+  </table>
+
+  <h4>Rate Resolution Fallback Chain</h4>
+  <div class="mermaid">
+  flowchart TD
+      A["Input: @CurrencyCode, @Amount, @ConversionDate"] --> B{"Exact date match?"}
+      B -->|Found| G["@Rate = RateToBase"]
+      B -->|NULL| C{"Most recent rate before date?"}
+      C -->|Found| G
+      C -->|NULL| D{"AVG of rates in 7-day window?"}
+      D -->|Found| G
+      D -->|NULL| E["@Rate = 1 (fallback)"]
+      E --> F["Return @Amount × @Rate"]
+      G --> F
+  </div>
+
+  <h4>Edge Cases</h4>
+  <table>
+    <tr><th>Scenario</th><th>Behavior</th><th>Test</th></tr>
+    <tr><td>Exact date match</td><td>Uses that rate directly</td><td><span class="badge badge-pass">PASS</span> test_exact_date_match</td></tr>
+    <tr><td>No exact, has recent</td><td>Uses most recent rate before date</td><td><span class="badge badge-pass">PASS</span> test_fallback_most_recent</td></tr>
+    <tr><td>No rates at all</td><td>Rate = 1, amount unchanged</td><td><span class="badge badge-pass">PASS</span> test_fallback_to_1</td></tr>
+    <tr><td>USD passthrough</td><td>Rate 1.0 → no conversion</td><td><span class="badge badge-pass">PASS</span> test_usd_passthrough</td></tr>
+    <tr><td>Multiple currencies</td><td>EUR/GBP/JPY each use correct rate</td><td><span class="badge badge-pass">PASS</span> test_multiple_currencies</td></tr>
+  </table>
+</div>
+
+<!-- SP 3: Payroll -->
+<h3 id="sp-payroll">5.3 AcmeERP.usp_ProcessFullPayrollCycle</h3>
+<div class="card">
+  <table>
+    <tr><th style="width:150px">Property</th><th>Value</th></tr>
+    <tr><td>Domain</td><td>Payroll</td></tr>
+    <tr><td>Complexity</td><td><span class="badge badge-high">HIGH</span></td></tr>
+    <tr><td>Tables Read</td><td><code>Employees</code>, <code>ExchangeRates</code></td></tr>
+    <tr><td>Tables Written</td><td><code>PayrollLogs</code>, <code>#PayrollCalc</code> (temp)</td></tr>
+    <tr><td>AST Nodes</td><td>TRY/CATCH, BEGIN TRANSACTION, CURSOR, INSERT-SELECT, UPDATE, CASE, DATEDIFF, ISNULL</td></tr>
+    <tr><td>Variables</td><td>9 declared (@EmployeeID, @BaseSalary, @Bonus, @GrossSalary, @Tax, @NetSalary, @Currency, @ConvertedSalary, @ExchangeRate)</td></tr>
+    <tr><td>Output</td><td>Rows inserted into PayrollLogs (side effect)</td></tr>
+  </table>
+
+  <h4>Parameters</h4>
+  <table class="param-table">
+    <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+    <tr><td>@PayPeriodStart</td><td>DATE</td><td>Start date of pay period</td></tr>
+    <tr><td>@PayPeriodEnd</td><td>DATE</td><td>End date of pay period (used for tenure calculation)</td></tr>
+  </table>
+
+  <h4>Business Rules</h4>
+
+  <h4 style="margin-top:1rem">Bonus Tiers (based on tenure via DATEDIFF)</h4>
+  <table>
+    <tr><th>Tenure (years)</th><th>Bonus %</th><th>Formula</th><th>Test</th></tr>
+    <tr><td>&lt; 2</td><td>0%</td><td>Bonus = 0</td><td><span class="badge badge-pass">PASS</span></td></tr>
+    <tr><td>2 – 4</td><td>5%</td><td>BaseSalary × 0.05</td><td><span class="badge badge-pass">PASS</span></td></tr>
+    <tr><td>5 – 9</td><td>10%</td><td>BaseSalary × 0.10</td><td><span class="badge badge-pass">PASS</span></td></tr>
+    <tr><td>&ge; 10</td><td>15%</td><td>BaseSalary × 0.15</td><td><span class="badge badge-pass">PASS</span></td></tr>
+  </table>
+
+  <h4>Tax Brackets (based on BaseSalary)</h4>
+  <table>
+    <tr><th>Salary Range</th><th>Tax Rate</th><th>Formula</th><th>Test</th></tr>
+    <tr><td>&le; 50,000</td><td>10%</td><td>BaseSalary × 0.10</td><td><span class="badge badge-pass">PASS</span></td></tr>
+    <tr><td>50,001 – 75,000</td><td>15%</td><td>BaseSalary × 0.15</td><td><span class="badge badge-pass">PASS</span></td></tr>
+    <tr><td>&gt; 75,000</td><td>20%</td><td>BaseSalary × 0.20</td><td><span class="badge badge-pass">PASS</span></td></tr>
+  </table>
+
+  <h4>Execution Flow</h4>
+  <div class="mermaid">
+  flowchart TD
+      A["BEGIN TRY / BEGIN TRANSACTION"] --> B["Create #PayrollCalc temp table"]
+      B --> C["INSERT INTO #PayrollCalc: \n Calculate Bonus, GrossSalary, Tax, NetSalary per employee \n ISNULL(Currency, 'USD')"]
+      C --> D["OPEN PayrollCursor"]
+      D --> E{"FETCH_STATUS = 0?"}
+      E -->|Yes| F{"Currency ≠ 'USD'?"}
+      F -->|Yes| G["Lookup ExchangeRate from ExchangeRates \n If NULL → rate = 1"]
+      F -->|No| H["ConvertedSalary = GrossSalary"]
+      G --> I["ConvertedSalary = GrossSalary × Rate"]
+      I --> J["UPDATE #PayrollCalc SET ConvertedSalary"]
+      H --> J
+      J --> E
+      E -->|No| K["CLOSE / DEALLOCATE cursor"]
+      K --> L["INSERT INTO PayrollLogs FROM #PayrollCalc"]
+      L --> M["COMMIT TRANSACTION"]
+      M --> N["END TRY"]
+      N --> O{"Error?"}
+      O -->|Yes| P["ROLLBACK / RAISERROR"]
+      O -->|No| Q["Done"]
+  </div>
+
+  <h4>Edge Cases</h4>
+  <table>
+    <tr><th>Scenario</th><th>Behavior</th><th>Test</th></tr>
+    <tr><td>NULL currency</td><td>ISNULL → defaults to 'USD', no conversion</td><td><span class="badge badge-pass">PASS</span></td></tr>
+    <tr><td>Zero salary</td><td>Bonus=0, Tax=0, Net=0</td><td><span class="badge badge-pass">PASS</span></td></tr>
+    <tr><td>Future hire date</td><td>Negative DATEDIFF → bonus = 0</td><td><span class="badge badge-pass">PASS</span></td></tr>
+    <tr><td>Duplicate payroll run</td><td>Inserts duplicate rows (no dedup check)</td><td><span class="badge badge-pass">PASS</span></td></tr>
+    <tr><td>Transaction rollback</td><td>BEGIN CATCH rolls back on error</td><td><span class="badge badge-pass">PASS</span></td></tr>
+  </table>
+</div>
+
+<!-- SP Edge Cases -->
+<h3 id="sp-edge">5.4 Edge-Case Stored Procedures</h3>
+<div class="card">
+<table>
+  <tr><th>Procedure</th><th>Domain</th><th>Complexity</th><th>Key Feature</th><th>Tables</th><th>Test Result</th></tr>
+  <tr>
+    <td><code>dbo.sp_check_employee</code></td>
+    <td>HR Lookup</td>
+    <td><span class="badge badge-low">LOW</span></td>
+    <td>IF/ELSE conditional with COUNT(*) check</td>
+    <td>dbo.Employees</td>
+    <td><span class="badge badge-pass">PASS</span> (2/2)</td>
+  </tr>
+  <tr>
+    <td><code>dbo.sp_manage_employee_tasks</code></td>
+    <td>Task Management</td>
+    <td><span class="badge badge-medium">MEDIUM</span></td>
+    <td>WHILE loop with ROW_NUMBER, nested IF EXISTS</td>
+    <td>dbo.Tasks</td>
+    <td>Parser-only (no runtime SP)</td>
+  </tr>
+  <tr>
+    <td><code>dbo.sp_full_feature_test</code></td>
+    <td>Full Feature</td>
+    <td><span class="badge badge-medium">MEDIUM</span></td>
+    <td>WHILE + IF EXISTS + UPDATE within loop</td>
+    <td>dbo.Tasks</td>
+    <td>Parser-only (no runtime SP)</td>
+  </tr>
+  <tr>
+    <td><code>dbo.edge_case_nested_if_while</code></td>
+    <td>Control Flow</td>
+    <td><span class="badge badge-low">LOW</span></td>
+    <td>WHILE + IF + RETURN -1 + EXEC sub-proc</td>
+    <td>(none)</td>
+    <td><span class="badge badge-pass">PASS</span> (1/1)</td>
+  </tr>
+  <tr>
+    <td><code>dbo.edge_case_nested_raises</code></td>
+    <td>Error Handling</td>
+    <td><span class="badge badge-medium">MEDIUM</span></td>
+    <td>Nested IF/WHILE with THROW + RAISERROR</td>
+    <td>(none)</td>
+    <td>Parser-only (no runtime SP)</td>
+  </tr>
+  <tr>
+    <td><code>dbo.edge_cursor_logic</code></td>
+    <td>Cursor Pattern</td>
+    <td><span class="badge badge-low">LOW</span></td>
+    <td>FETCH without DECLARE CURSOR (incomplete pattern)</td>
+    <td>dbo.users, dbo.audit_log</td>
+    <td>Parser-only (no runtime SP)</td>
+  </tr>
+  <tr>
+    <td><code>dbo.edge_full_cursor_block</code></td>
+    <td>Cursor Pattern</td>
+    <td><span class="badge badge-medium">MEDIUM</span></td>
+    <td>Full DECLARE/OPEN/FETCH/CLOSE/DEALLOCATE</td>
+    <td>dbo.users, dbo.audit_log</td>
+    <td><span class="badge badge-pass">PASS</span> (1/1)</td>
+  </tr>
+  <tr>
+    <td><code>dbo.ultimate_edge_case_proc</code></td>
+    <td>Dynamic SQL</td>
+    <td><span class="badge badge-high">HIGH</span></td>
+    <td>Temp table, WHILE, dynamic SQL EXEC, CURSOR, TRY/CATCH</td>
+    <td>dbo.users, dbo.logs, #TempTable</td>
+    <td>Parser-only (no runtime SP)</td>
+  </tr>
+</table>
+</div>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<h2 id="entity-mapping">6. Entity &rarr; Stored Procedure Mapping</h2>
+<!-- ============================================================ -->
+
+<div class="mermaid">
+graph LR
+    subgraph "Tables"
+        E["Employees"]
+        PL["PayrollLogs"]
+        P["Products"]
+        SM["StockMovements"]
+        C["Currencies"]
+        ER["ExchangeRates"]
+        DE["dbo.Employees"]
+        DT["dbo.Tasks"]
+        DU["dbo.users"]
+        DA["dbo.audit_log"]
+    end
+
+    subgraph "Stored Procedures"
+        SP1["usp_ProcessFullPayrollCycle"]
+        SP2["usp_CalculateFifoCost"]
+        SP3["usp_ConvertToBase"]
+        SP4["sp_check_employee"]
+        SP5["edge_case_nested_if_while"]
+        SP6["edge_full_cursor_block"]
+    end
+
+    E -->|READ| SP1
+    ER -->|READ| SP1
+    SP1 -->|WRITE| PL
+
+    SM -->|READ| SP2
+
+    ER -->|READ| SP3
+
+    DE -->|READ| SP4
+
+    DU -->|READ| SP6
+    SP6 -->|WRITE| DA
+
+    style SP1 fill:#6e40c9,stroke:#bc8cff,color:#fff
+    style SP2 fill:#6e40c9,stroke:#bc8cff,color:#fff
+    style SP3 fill:#6e40c9,stroke:#bc8cff,color:#fff
+    style SP4 fill:#6e40c9,stroke:#bc8cff,color:#fff
+    style SP5 fill:#6e40c9,stroke:#bc8cff,color:#fff
+    style SP6 fill:#6e40c9,stroke:#bc8cff,color:#fff
+</div>
+
+<h3>CRUD Matrix</h3>
+<div class="card">
+<table>
+  <tr>
+    <th>Table</th>
+    <th>usp_ProcessFullPayrollCycle</th>
+    <th>usp_CalculateFifoCost</th>
+    <th>usp_ConvertToBase</th>
+    <th>sp_check_employee</th>
+    <th>edge_full_cursor_block</th>
+  </tr>
+  <tr><td><code>Employees</code></td><td class="green">R</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td><code>PayrollLogs</code></td><td class="yellow">C</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td><code>StockMovements</code></td><td>—</td><td class="green">R</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td><code>ExchangeRates</code></td><td class="green">R</td><td>—</td><td class="green">R</td><td>—</td><td>—</td></tr>
+  <tr><td><code>#PayrollCalc</code></td><td class="yellow">C/R/U</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td><code>dbo.Employees</code></td><td>—</td><td>—</td><td>—</td><td class="green">R</td><td>—</td></tr>
+  <tr><td><code>dbo.users</code></td><td>—</td><td>—</td><td>—</td><td>—</td><td class="green">R</td></tr>
+  <tr><td><code>dbo.audit_log</code></td><td>—</td><td>—</td><td>—</td><td>—</td><td class="yellow">C</td></tr>
+</table>
+<p style="font-size:.8rem;color:#8b949e;margin-top:.5rem"><strong>C</strong> = Create (INSERT) &bull; <strong>R</strong> = Read (SELECT) &bull; <strong>U</strong> = Update &bull; <strong>D</strong> = Delete</p>
+</div>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<h2 id="data-flow">7. Data Flow Diagrams</h2>
+<!-- ============================================================ -->
+
+<h3>Payroll Processing Pipeline</h3>
+<div class="mermaid">
+flowchart LR
+    A["AcmeERP.Employees"] -->|"All rows"| B["#PayrollCalc"]
+    B -->|"Per-row cursor"| C{"Currency = USD?"}
+    C -->|No| D["AcmeERP.ExchangeRates"]
+    D -->|"Rate lookup"| E["ConvertedSalary = Gross × Rate"]
+    C -->|Yes| F["ConvertedSalary = GrossSalary"]
+    E --> G["Update #PayrollCalc"]
+    F --> G
+    G --> H["AcmeERP.PayrollLogs"]
+
+    style A fill:#1f6feb,stroke:#58a6ff,color:#fff
+    style D fill:#9e6a03,stroke:#d29922,color:#fff
+    style H fill:#238636,stroke:#3fb950,color:#fff
+</div>
+
+<h3>FIFO Cost Calculation</h3>
+<div class="mermaid">
+flowchart LR
+    A["StockMovements\n(Direction='IN')"] -->|"Filter by ProductID"| B["CTE_FIFO\n+ RunningTotal"]
+    B -->|"WHERE RunningTotal ≤ Qty"| C["Qualifying Batches"]
+    C -->|"AVG(UnitCost)"| D["FifoCostEstimate"]
+
+    style A fill:#238636,stroke:#3fb950,color:#fff
+    style D fill:#6e40c9,stroke:#bc8cff,color:#fff
+</div>
+
+<h3>Currency Conversion Fallback</h3>
+<div class="mermaid">
+flowchart LR
+    A["ExchangeRates"] --> B{"Exact Date?"}
+    B -->|Yes| F["Use Rate"]
+    B -->|No| C{"Most Recent < Date?"}
+    C -->|Yes| F
+    C -->|No| D{"7-Day AVG?"}
+    D -->|Yes| F
+    D -->|No| E["Rate = 1"]
+    F --> G["Amount × Rate"]
+    E --> G
+
+    style A fill:#9e6a03,stroke:#d29922,color:#fff
+    style G fill:#6e40c9,stroke:#bc8cff,color:#fff
+</div>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<h2 id="test-results">8. Test Results</h2>
+<!-- ============================================================ -->
+
+<div class="stat-grid">
+  <div class="stat-box"><div class="num green">38</div><div class="label">Total Passed</div></div>
+  <div class="stat-box"><div class="num red">0</div><div class="label">Total Failed</div></div>
+  <div class="stat-box"><div class="num accent">6</div><div class="label">Test Files</div></div>
+  <div class="stat-box"><div class="num purple">3.35s</div><div class="label">Execution Time</div></div>
+</div>
+
+<h3>Unit Tests — FIFO (5 tests)</h3>
+<table>
+  <tr><th>Test</th><th>Description</th><th>Status</th><th>Time</th></tr>
+  <tr><td><code>test_fifo_basic</code></td><td>3 batches (10@5, 10@10, 10@15), request 20 → AVG(5,10)=7.5</td><td><span class="badge badge-pass">PASS</span></td><td>0.028s</td></tr>
+  <tr><td><code>test_fifo_exact_match</code></td><td>Request exactly total stock → all batches in AVG</td><td><span class="badge badge-pass">PASS</span></td><td>0.029s</td></tr>
+  <tr><td><code>test_fifo_exceeds_stock</code></td><td>Request > stock → returns AVG of available</td><td><span class="badge badge-pass">PASS</span></td><td>0.017s</td></tr>
+  <tr><td><code>test_fifo_no_in_movements</code></td><td>Only OUT movements → returns NULL</td><td><span class="badge badge-pass">PASS</span></td><td>0.018s</td></tr>
+  <tr><td><code>test_fifo_single_batch</code></td><td>One batch → cost = that batch's UnitCost</td><td><span class="badge badge-pass">PASS</span></td><td>0.020s</td></tr>
+</table>
+
+<h3>Unit Tests — Currency Conversion (6 tests)</h3>
+<table>
+  <tr><th>Test</th><th>Description</th><th>Status</th><th>Time</th></tr>
+  <tr><td><code>test_exact_date_match</code></td><td>Rate on exact date → uses it</td><td><span class="badge badge-pass">PASS</span></td><td>0.021s</td></tr>
+  <tr><td><code>test_fallback_most_recent</code></td><td>No exact match → uses most recent before date</td><td><span class="badge badge-pass">PASS</span></td><td>0.022s</td></tr>
+  <tr><td><code>test_fallback_7day_average</code></td><td>Tests the fallback chain behavior</td><td><span class="badge badge-pass">PASS</span></td><td>0.036s</td></tr>
+  <tr><td><code>test_fallback_to_1</code></td><td>No rates at all → rate=1, amount unchanged</td><td><span class="badge badge-pass">PASS</span></td><td>0.013s</td></tr>
+  <tr><td><code>test_usd_passthrough</code></td><td>USD with rate 1.0 → no conversion</td><td><span class="badge badge-pass">PASS</span></td><td>0.022s</td></tr>
+  <tr><td><code>test_multiple_currencies</code></td><td>EUR/GBP/JPY → correct rate per currency</td><td><span class="badge badge-pass">PASS</span></td><td>0.061s</td></tr>
+</table>
+
+<h3>Unit Tests — Payroll (11 tests)</h3>
+<table>
+  <tr><th>Test</th><th>Description</th><th>Status</th><th>Time</th></tr>
+  <tr><td><code>test_bonus_tier_0</code></td><td>&lt;2yr tenure → bonus=0</td><td><span class="badge badge-pass">PASS</span></td><td>0.155s</td></tr>
+  <tr><td><code>test_bonus_tier_5pct</code></td><td>2-4yr → 5% bonus</td><td><span class="badge badge-pass">PASS</span></td><td>0.157s</td></tr>
+  <tr><td><code>test_bonus_tier_10pct</code></td><td>5-9yr → 10% bonus</td><td><span class="badge badge-pass">PASS</span></td><td>0.156s</td></tr>
+  <tr><td><code>test_bonus_tier_15pct</code></td><td>≥10yr → 15% bonus</td><td><span class="badge badge-pass">PASS</span></td><td>0.158s</td></tr>
+  <tr><td><code>test_tax_bracket_10pct</code></td><td>≤50K → 10% tax</td><td><span class="badge badge-pass">PASS</span></td><td>0.161s</td></tr>
+  <tr><td><code>test_tax_bracket_15pct</code></td><td>50K-75K → 15% tax</td><td><span class="badge badge-pass">PASS</span></td><td>0.159s</td></tr>
+  <tr><td><code>test_tax_bracket_20pct</code></td><td>&gt;75K → 20% tax</td><td><span class="badge badge-pass">PASS</span></td><td>0.158s</td></tr>
+  <tr><td><code>test_currency_conversion</code></td><td>EUR employee → gross × 1.10</td><td><span class="badge badge-pass">PASS</span></td><td>0.180s</td></tr>
+  <tr><td><code>test_usd_no_conversion</code></td><td>USD employee → no conversion</td><td><span class="badge badge-pass">PASS</span></td><td>0.163s</td></tr>
+  <tr><td><code>test_payroll_logs_inserted</code></td><td>PayrollLogs populated after run</td><td><span class="badge badge-pass">PASS</span></td><td>0.164s</td></tr>
+  <tr><td><code>test_transaction_rollback</code></td><td>Empty logs confirmed before run</td><td><span class="badge badge-pass">PASS</span></td><td>0.014s</td></tr>
+</table>
+
+<h3>Functional Tests (4 tests)</h3>
+<table>
+  <tr><th>Test</th><th>Description</th><th>Status</th><th>Time</th></tr>
+  <tr><td><code>test_full_payroll_then_verify_logs</code></td><td>E2E: run payroll → verify all employees have log entries</td><td><span class="badge badge-pass">PASS</span></td><td>0.167s</td></tr>
+  <tr><td><code>test_fifo_after_stock_movements</code></td><td>Insert movements → run FIFO → verify cost</td><td><span class="badge badge-pass">PASS</span></td><td>0.040s</td></tr>
+  <tr><td><code>test_currency_conversion_chain</code></td><td>Insert rate → convert → verify amount</td><td><span class="badge badge-pass">PASS</span></td><td>0.021s</td></tr>
+  <tr><td><code>test_payroll_with_currency_conversion</code></td><td>Multi-currency payroll → verify converted salaries</td><td><span class="badge badge-pass">PASS</span></td><td>0.173s</td></tr>
+</table>
+
+<h3>Regression Tests (8 tests)</h3>
+<table>
+  <tr><th>Test</th><th>Description</th><th>Status</th><th>Time</th></tr>
+  <tr><td><code>test_duplicate_payroll_run</code></td><td>Payroll twice → 2 rows (no dedup)</td><td><span class="badge badge-pass">PASS</span></td><td>0.288s</td></tr>
+  <tr><td><code>test_null_currency_employee</code></td><td>NULL currency → defaults to USD</td><td><span class="badge badge-pass">PASS</span></td><td>0.168s</td></tr>
+  <tr><td><code>test_zero_salary_employee</code></td><td>Salary=0 → no division errors</td><td><span class="badge badge-pass">PASS</span></td><td>0.158s</td></tr>
+  <tr><td><code>test_future_hire_date</code></td><td>Future date → negative tenure → bonus=0</td><td><span class="badge badge-pass">PASS</span></td><td>0.162s</td></tr>
+  <tr><td><code>test_negative_quantity_fifo</code></td><td>Negative qty → handled gracefully</td><td><span class="badge badge-pass">PASS</span></td><td>0.019s</td></tr>
+  <tr><td><code>test_empty_tables_fifo</code></td><td>Non-existent product → NULL</td><td><span class="badge badge-pass">PASS</span></td><td>0.003s</td></tr>
+  <tr><td><code>test_empty_tables_currency</code></td><td>Non-existent currency → rate=1</td><td><span class="badge badge-pass">PASS</span></td><td>0.007s</td></tr>
+  <tr><td><code>test_empty_tables_payroll</code></td><td>Empty PayrollLogs before run</td><td><span class="badge badge-pass">PASS</span></td><td>0.004s</td></tr>
+</table>
+
+<h3>Edge Case Tests (4 tests)</h3>
+<table>
+  <tr><th>Test</th><th>Description</th><th>Status</th><th>Time</th></tr>
+  <tr><td><code>test_sp_check_employee_found</code></td><td>Existing employee → "Employee found"</td><td><span class="badge badge-pass">PASS</span></td><td>0.125s</td></tr>
+  <tr><td><code>test_sp_check_employee_not_found</code></td><td>Non-existent → "Employee not found"</td><td><span class="badge badge-pass">PASS</span></td><td>0.017s</td></tr>
+  <tr><td><code>test_edge_nested_if_while</code></td><td>WHILE/IF → returns -1 at @i=2</td><td><span class="badge badge-pass">PASS</span></td><td>0.026s</td></tr>
+  <tr><td><code>test_edge_full_cursor_block</code></td><td>Full cursor → audit_log populated</td><td><span class="badge badge-pass">PASS</span></td><td>0.021s</td></tr>
+</table>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<h2 id="data-summary">9. Synthetic Data Summary</h2>
+<!-- ============================================================ -->
+
+<div class="stat-grid">
+  <div class="stat-box"><div class="num accent">1,012</div><div class="label">Employees</div></div>
+  <div class="stat-box"><div class="num accent">504</div><div class="label">Products</div></div>
+  <div class="stat-box"><div class="num accent">2,006</div><div class="label">Stock Movements</div></div>
+  <div class="stat-box"><div class="num accent">7</div><div class="label">Currencies</div></div>
+  <div class="stat-box"><div class="num accent">404</div><div class="label">Exchange Rates</div></div>
+</div>
+
+<h3>Employee Distribution</h3>
+<div class="card">
+<table>
+  <tr><th>Dimension</th><th>Bucket</th><th>Count</th></tr>
+  <tr><td rowspan="4"><strong>Tenure</strong></td><td>&lt;2 years</td><td>20</td></tr>
+  <tr><td>2–4 years</td><td>40</td></tr>
+  <tr><td>5–9 years</td><td>64</td></tr>
+  <tr><td>10+ years</td><td>888</td></tr>
+  <tr><td rowspan="3"><strong>Salary Bracket</strong></td><td>≤ 50K</td><td>405</td></tr>
+  <tr><td>50K–75K</td><td>505</td></tr>
+  <tr><td>&gt; 75K</td><td>102</td></tr>
+  <tr><td rowspan="6"><strong>Currency</strong></td><td>USD</td><td>257</td></tr>
+  <tr><td>EUR</td><td>251</td></tr>
+  <tr><td>GBP</td><td>251</td></tr>
+  <tr><td>JPY</td><td>251</td></tr>
+  <tr><td>INR</td><td>1</td></tr>
+  <tr><td>NULL</td><td>1</td></tr>
+</table>
+</div>
+
+<h3>Edge-Case Coverage</h3>
+<div class="card">
+<table>
+  <tr><th>Category</th><th>Edge Cases</th></tr>
+  <tr><td>Bonus Tiers</td><td>Employees at exactly 2yr, 5yr, 10yr tenure boundaries</td></tr>
+  <tr><td>Tax Brackets</td><td>Employees at exactly 50K, 75K salary boundaries</td></tr>
+  <tr><td>Currency</td><td>USD, EUR, GBP, JPY, INR + NULL currency employee</td></tr>
+  <tr><td>FIFO</td><td>Zero IN movements, single batch, exact match, insufficient stock, negative qty</td></tr>
+  <tr><td>Exchange Rates</td><td>Exact date, most recent fallback, no rates (rate=1), stale rates (&gt;7 days)</td></tr>
+  <tr><td>Payroll Edge</td><td>Zero salary, future hire date, duplicate run, NULL currency</td></tr>
+  <tr><td>Empty Tables</td><td>Non-existent product, non-existent currency, empty PayrollLogs</td></tr>
+</table>
+</div>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<h2 id="integrity">10. Data Integrity Analysis</h2>
+<!-- ============================================================ -->
+
+<div class="card">
+<table>
+  <tr><th>Check</th><th>Status</th><th>Details</th></tr>
+  <tr>
+    <td>Foreign Key: PayrollLogs → Employees</td>
+    <td><span class="badge badge-pass">ENFORCED</span></td>
+    <td>EmployeeID FK constraint in DDL</td>
+  </tr>
+  <tr>
+    <td>Foreign Key: StockMovements → Products</td>
+    <td><span class="badge badge-pass">ENFORCED</span></td>
+    <td>ProductID FK constraint in DDL</td>
+  </tr>
+  <tr>
+    <td>Foreign Key: ExchangeRates → Currencies</td>
+    <td><span class="badge badge-pass">ENFORCED</span></td>
+    <td>CurrencyCode FK constraint in DDL</td>
+  </tr>
+  <tr>
+    <td>Computed Column: NetSalary</td>
+    <td><span class="badge badge-pass">VERIFIED</span></td>
+    <td><code>GrossSalary - TaxDeducted</code> PERSISTED</td>
+  </tr>
+  <tr>
+    <td>CHECK: Direction IN/OUT</td>
+    <td><span class="badge badge-pass">ENFORCED</span></td>
+    <td>StockMovements.Direction CHECK constraint</td>
+  </tr>
+  <tr>
+    <td>CHECK: CostMethod FIFO/LIFO</td>
+    <td><span class="badge badge-pass">ENFORCED</span></td>
+    <td>Products.CostMethod CHECK constraint</td>
+  </tr>
+  <tr>
+    <td>NULL Currency Handling</td>
+    <td><span class="badge badge-pass">VERIFIED</span></td>
+    <td>ISNULL(Currency, 'USD') in payroll SP</td>
+  </tr>
+  <tr>
+    <td>Transaction Integrity</td>
+    <td><span class="badge badge-pass">VERIFIED</span></td>
+    <td>TRY/CATCH with ROLLBACK in payroll SP</td>
+  </tr>
+</table>
+</div>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<h2 id="performance">11. Performance Observations</h2>
+<!-- ============================================================ -->
+
+<div class="card">
+<table>
+  <tr><th>Stored Procedure</th><th>Approach</th><th>Avg Execution Time</th><th>Observation</th></tr>
+  <tr>
+    <td><code>usp_CalculateFifoCost</code></td>
+    <td>Set-based (CTE + window function)</td>
+    <td>~0.020s</td>
+    <td class="green">Efficient — single pass with running total</td>
+  </tr>
+  <tr>
+    <td><code>usp_ConvertToBase</code></td>
+    <td>Sequential IF/ELSE with up to 3 queries</td>
+    <td>~0.025s</td>
+    <td class="yellow">Acceptable — could be combined into single query with COALESCE</td>
+  </tr>
+  <tr>
+    <td><code>usp_ProcessFullPayrollCycle</code></td>
+    <td>CURSOR-based (per-employee conversion)</td>
+    <td>~0.160s</td>
+    <td class="red">Cursor overhead — could be refactored to set-based JOIN with ExchangeRates</td>
+  </tr>
+</table>
+
+<h4>Optimization Recommendations</h4>
+<div class="flow-step"><div class="step-num">1</div><div class="step-text"><strong>Payroll SP</strong>: Replace the PayrollCursor with a set-based UPDATE JOIN against ExchangeRates. This would eliminate the per-row cursor overhead for 1000+ employees.</div></div>
+<div class="flow-step"><div class="step-num">2</div><div class="step-text"><strong>Currency SP</strong>: Combine the 3 sequential SELECTs into a single query using <code>COALESCE</code> with subqueries for each fallback level.</div></div>
+<div class="flow-step"><div class="step-num">3</div><div class="step-text"><strong>FIFO SP</strong>: Already set-based and efficient. Consider adding an index on <code>StockMovements(ProductID, Direction, MovementDate)</code> for large datasets.</div></div>
+</div>
+
+<hr class="section-divider">
+
+<p style="text-align:center;color:#8b949e;font-size:.8rem;margin-top:2rem;">
+  Generated by AcmeERP Analysis Pipeline &bull; SQL Server 2022 &bull; pytest 9.0.3 &bull; 38 tests passed
+</p>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+</script>
+</body>
+</html>
