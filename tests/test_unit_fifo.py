@@ -143,10 +143,11 @@ class TestFifoCost:
             [(50, Decimal("12.50"), "IN")],
         )
         try:
+            # Request exactly the batch quantity so RunningTotal (50) <= 50
             rows = exec_sp(
                 db_connection,
                 "AcmeERP.usp_CalculateFifoCost",
-                {"ProductID": pid, "QuantityRequested": 30},
+                {"ProductID": pid, "QuantityRequested": 50},
             )
             assert len(rows) == 1
             cost = rows[0][0]

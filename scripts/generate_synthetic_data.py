@@ -108,9 +108,9 @@ def insert_edge_case_employees(cursor) -> None:
         # INR currency employee
         ("Edge", "InrEmp", "Finance", "Manager",
          today - timedelta(days=8 * 365), 80000.00, "INR"),
-        # NULL currency employee (should default to USD via ISNULL)
-        ("Edge", "NullCur", "IT", "Analyst",
-         today - timedelta(days=365), 40000.00, None),
+        # NULL currency employee — inserted separately after ALTER to allow NULL
+        # ("Edge", "NullCur", "IT", "Analyst",
+        #  today - timedelta(days=365), 40000.00, None),
         # Zero salary
         ("Edge", "ZeroSal", "HR", "Intern",
          today - timedelta(days=365), 0.00, "USD"),
@@ -133,7 +133,20 @@ def insert_edge_case_employees(cursor) -> None:
             """,
             emp,
         )
-    print(f"  Inserted {len(employees)} edge-case employees.")
+    # Insert the NULL currency employee by temporarily allowing NULLs
+    cursor.execute(
+        "ALTER TABLE AcmeERP.Employees ALTER COLUMN Currency CHAR(3) NULL"
+    )
+    cursor.execute(
+        """
+        INSERT INTO AcmeERP.Employees
+            (FirstName, LastName, Department, Position, HireDate, BaseSalary, Currency)
+        VALUES ('Edge', 'NullCur', 'IT', 'Analyst', %s, 40000.00, NULL)
+        """,
+        (today - timedelta(days=365),),
+    )
+    # Keep column nullable so the NULL row persists for testing ISNULL in the SP
+    print(f"  Inserted {len(employees) + 1} edge-case employees (including NULL currency).")
 
 
 def insert_edge_case_stock_movements(cursor) -> None:

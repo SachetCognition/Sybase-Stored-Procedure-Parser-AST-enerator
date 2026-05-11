@@ -193,7 +193,18 @@ class TestEdgeNestedIfWhile:
             EXEC @rc = dbo.edge_case_nested_if_while
             SELECT @rc AS ReturnCode
         """)
+        # The SP calls log_event which returns a result set (the logged value).
+        # Skip through result sets until we find the ReturnCode.
         row = cursor.fetchone()
+        # First result set is from log_event: (2,). Skip to next.
+        while True:
+            try:
+                if cursor.nextset():
+                    row = cursor.fetchone()
+                else:
+                    break
+            except Exception:
+                break
         db_connection.commit()
         cursor.close()
         assert row is not None

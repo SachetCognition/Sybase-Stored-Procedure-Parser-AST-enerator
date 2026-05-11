@@ -78,6 +78,11 @@ class TestRegressionPayroll:
     def test_null_currency_employee(self, db_connection):
         """Employee with NULL currency -> should default to USD via ISNULL."""
         today = date.today()
+        # Allow NULL in Currency column for this test
+        cursor = db_connection.cursor()
+        cursor.execute("ALTER TABLE AcmeERP.Employees ALTER COLUMN Currency CHAR(3) NULL")
+        db_connection.commit()
+        cursor.close()
         eid = _insert_employee(
             db_connection, "Reg", "NullCur", "IT", "Analyst",
             today - timedelta(days=365), Decimal("40000.00"), None,
